@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Bd Official - Admin Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans p-4">
+
+    <div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-5">
+        
+        <!-- Admin Header -->
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h1 class="text-lg font-bold text-blue-400 flex items-center"><i class="fa-solid fa-shield-halved mr-2"></i>Task Bd Official - Admin Panel</h1>
+            <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg text-slate-300 font-semibold transition"><i class="fa-solid fa-arrow-left mr-1"></i> অ্যাপে যান</a>
+        </div>
+
+        <!-- Admin Login Section -->
+        <div id="admin-login-box" class="space-y-3">
+            <p class="text-xs text-slate-400">এডমিন কন্ট্রোল প্যানেল অ্যাক্সেস করতে সিক্রেট পাসওয়ার্ড দিন।</p>
+            <input type="password" id="admin-pass-input" placeholder="সিক্রেট পাসওয়ার্ড দিন" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500">
+            <button onclick="verifyAdminLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition">লগইন করুন</button>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard-box" class="hidden space-y-5">
+            
+            <!-- Deposit Requests -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">ডিপোজিট রিকোয়েস্ট (১০০% অটো বোনাস সহ)</h4>
+                <div id="admin-deposit-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Withdraw Requests -->
+            <div class="pt-3 border-t border-slate-800 space-y-2">
+                <h4 class="text-xs font-semibold text-amber-400 uppercase tracking-wide">উইথড্র রিকোয়েস্ট</h4>
+                <div id="admin-withdraw-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Live Chat Support -->
+            <div class="pt-3 border-t border-slate-800 space-y-2">
+                <h4 class="text-xs font-semibold text-blue-400 uppercase tracking-wide">ক্লায়েন্ট লাইভ চ্যাট মেসেজ</h4>
+                <div id="admin-chat-list" class="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800 max-h-60 overflow-y-auto text-xs"></div>
+                <div class="flex space-x-2 pt-1">
+                    <input type="text" id="admin-direct-msg" placeholder="ক্লায়েন্টকে উত্তর লিখুন..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    <button onclick="sendDirectAdminMessage()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl text-white text-xs font-semibold shadow">পাঠান</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if(localStorage.getItem('taskbd_admin_logged') === 'true') {
+            document.getElementById('admin-login-box').classList.add('hidden');
+            document.getElementById('admin-dashboard-box').classList.remove('hidden');
+            renderAdminDashboard();
+        }
+        function verifyAdminLogin() {
+            let pass = document.getElementById('admin-pass-input').value;
+            if(pass === 'Mehedi1234@#') {
+                localStorage.setItem('taskbd_admin_logged', 'true');
+                document.getElementById('admin-login-box').classList.add('hidden');
+                document.getElementById('admin-dashboard-box').classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                alert('ভুল পাসওয়ার্ড!');
+            }
+        }
+    </script>
+</body>
+</html>

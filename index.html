@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Bd Official - Earning & Investment Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans pb-24">
+
+    <!-- App Container -->
+    <div id="app" class="max-w-md mx-auto bg-slate-900 min-h-screen relative shadow-2xl overflow-hidden border border-slate-800">
+        
+        <!-- Live Payment Marquee (ডিপোজিট ও উইথড্র লাইভ স্ক্রল ও পরিবর্তনশীল নাম্বার) -->
+        <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-blue-950 border-b border-slate-800 py-2 px-3 text-xs overflow-hidden relative z-20 flex items-center shadow">
+            <span class="text-amber-400 font-bold mr-2 flex items-center shrink-0"><i class="fa-solid fa-bolt mr-1 animate-pulse"></i> লাইভ পেমেন্ট:</span>
+            <div class="overflow-hidden whitespace-nowrap w-full">
+                <div id="live-ticker" class="inline-block text-slate-300 font-mono animate-marquee">
+                    [০১৭****১২৩৪] সফলভাবে ৫০০০ টাকা ডিপোজিট করেছেন | [০১৮****৫৬৭৮] সফলভাবে ২০০০০ টাকা উইথড্র করেছেন | [০১৯****৪৩২১] ভিআইপি প্যাকেজ কিনেছেন!
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header id="app-header" class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex justify-between items-center shadow-lg sticky top-0 z-30 hidden">
+            <div class="flex items-center space-x-2.5">
+                <div onclick="openProfileModal()" class="bg-white/20 border border-white/30 text-white font-bold p-2 rounded-full w-10 h-10 flex items-center justify-center text-lg cursor-pointer shadow hover:bg-white/30 transition backdrop-blur-sm" title="Profile">T</div>
+                <div onclick="switchTab('home')" class="cursor-pointer">
+                    <span class="text-lg font-black tracking-wider bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Task Bd Official</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="p-4 space-y-4">
+            <!-- Dynamic Content -->
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav id="bottom-nav" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex justify-around py-3 text-xs text-slate-400 z-30 shadow-2xl hidden">
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-blue-500 transition hover:text-blue-400">
+                <i class="fa-solid fa-house text-lg mb-1"></i>
+                <span class="font-medium">হোম</span>
+            </button>
+            <button onclick="switchTab('tasks')" id="nav-tasks" class="flex flex-col items-center hover:text-blue-500 transition">
+                <i class="fa-solid fa-list-check text-lg mb-1"></i>
+                <span class="font-medium">টাস্ক</span>
+            </button>
+            <button onclick="switchTab('plans')" id="nav-plans" class="flex flex-col items-center hover:text-blue-500 transition">
+                <i class="fa-solid fa-gem text-lg mb-1"></i>
+                <span class="font-medium">প্ল্যানস</span>
+            </button>
+            <button onclick="switchTab('spin')" id="nav-spin" class="flex flex-col items-center hover:text-blue-500 transition">
+                <i class="fa-solid fa-dharmachakra text-lg mb-1 text-amber-400"></i>
+                <span class="font-medium">স্পিন</span>
+            </button>
+            <button onclick="switchTab('refer')" id="nav-refer" class="flex flex-col items-center hover:text-blue-500 transition">
+                <i class="fa-solid fa-users text-lg mb-1 text-emerald-400"></i>
+                <span class="font-medium">রেফার</span>
+            </button>
+            <button onclick="switchTab('chat')" id="nav-chat" class="flex flex-col items-center hover:text-blue-500 transition relative">
+                <i class="fa-solid fa-headset text-lg mb-1"></i>
+                <span class="font-medium">সাপোর্ট</span>
+            </button>
+        </nav>
+
+        <!-- Profile Modal -->
+        <div id="profile-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl p-5 space-y-4 relative shadow-2xl">
+                <button onclick="closeProfileModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                <div class="text-center space-y-2 pt-2">
+                    <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full mx-auto flex items-center justify-center text-2xl font-bold text-white shadow-lg ring-4 ring-blue-500/20">T</div>
+                    <h3 id="profile-modal-user" class="font-bold text-sm text-white truncate px-4">user@gmail.com</h3>
+                    <p class="text-xs text-blue-400 bg-blue-500/10 py-1 px-3 rounded-full inline-block border border-blue-500/20">Active Plan: <span id="profile-modal-plan" class="font-semibold">Free Tier</span></p>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5 text-xs">
+                    <div class="flex justify-between"><span class="text-slate-400">মূল ব্যালেন্স:</span><span id="profile-modal-bal" class="text-emerald-400 font-bold">0.00 BDT</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">বোনাস ব্যালেন্স:</span><span id="profile-modal-bonus" class="text-amber-400 font-bold">0.00 BDT</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">মোট ডিপোজিট:</span><span id="profile-modal-dep" class="text-blue-400 font-bold">0.00 BDT</span></div>
+                </div>
+                <button onclick="closeProfileModal(); switchTab('account');" class="w-full bg-blue-600 hover:bg-blue-700 py-2.5 rounded-xl text-xs font-semibold text-white shadow-lg shadow-blue-600/30 transition">একাউন্ট সেটিংস</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // র্যান্ডম ডিপোজিট ও উইথড্র লাইভ টিকার নাম্বার জেনারেটর
+        const phonePrefixes = ['017', '018', '019', '013', '016', '015', '014'];
+        const actions = [
+            { type: 'ডিপোজিট করেছেন', color: 'text-emerald-400' },
+            { type: 'সফলভাবে উইথড্র করেছেন', color: 'text-amber-400' },
+            { type: 'ভিআইপি প্ল্যান কিনেছেন', color: 'text-blue-400' }
+        ];
+
+        function updateTicker() {
+            let ticker = document.getElementById('live-ticker');
+            if(!ticker) return;
+            
+            let htmlItems = [];
+            for(let i=0; i<5; i++) {
+                let prefix = phonePrefixes[Math.floor(Math.random() * phonePrefixes.length)];
+                let randomNum = Math.floor(1000000 + Math.random() * 9000000);
+                let maskedPhone = prefix + randomNum.toString().substring(0, 4) + '****';
+                let amount = Math.floor(1 + Math.random() * 20) * 500;
+                let action = actions[Math.floor(Math.random() * actions.length)];
+                
+                htmlItems.push(`[${maskedPhone}] ${amount} টাকা ${action.type} |`);
+            }
+            ticker.innerHTML = htmlItems.join(' ');
+        }
+        setInterval(updateTicker, 4000);
+    </script>
+</body>
+</html>

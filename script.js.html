@@ -1,0 +1,803 @@
+let usersList = JSON.parse(localStorage.getItem('taskbd_users_db')) || [];
+let loggedInUserKey = localStorage.getItem('taskbd_logged_key') || null;
+
+let withdrawRequests = JSON.parse(localStorage.getItem('taskbd_withdraws')) || [];
+let depositRequests = JSON.parse(localStorage.getItem('taskbd_deposits')) || [];
+
+let chatMessages = JSON.parse(localStorage.getItem('taskbd_chats')) || [
+    { sender: 'admin', text: 'আসসালামু আলাইকুম! Task Bd Official এ আপনাকে স্বাগতম। ১ম ডিপোজিটে ১০০% বোনাস চলছে!', time: 'Now' }
+];
+
+let currentTab = 'home';
+let authMode = 'login';
+let selectedPlanForPurchase = null;
+const officialDepositNumber = '01994500030';
+
+let currentMath = { a: 0, b: 0, ans: 0 };
+let currentQuizIndex = 0;
+
+const quizQuestions = [
+    { q: "বাংলাদেশের রাজধানীর নাম কী?", options: ["খুলনা", "ঢাকা", "চট্টগ্রাম"], ans: "ঢাকা" },
+    { q: "বাংলাদেশের জাতীয় ফুল কোনটি?", options: ["গোলাপ", "শাপলা", "জবা"], ans: "শাপলা" },
+    { q: "এক সপ্তাহে কয়দিন হয়?", options: ["৫ দিন", "৭ দিন", "১০ দিন"], ans: "৭ দিন" },
+    { q: "সূর্য কোন দিকে উদিত হয়?", options: ["পশ্চিম", "উত্তর", "পূর্ব"], ans: "পূর্ব" }
+];
+
+const plansData = [
+    { id: 1, name: 'VIP 1 (৫০০ টাকা)', price: 500, daily: 70, duration: 30, badge: '১০০% বোনাস যুক্ত' },
+    { id: 2, name: 'VIP 2 (১০০০ টাকা)', price: 1000, daily: 150, duration: 30, badge: '১০০% বোনাস যুক্ত' },
+    { id: 3, name: 'VIP 3 (২০০০ টাকা)', price: 2000, daily: 320, duration: 30, badge: '১০০% বোনাস যুক্ত' },
+    { id: 4, name: 'VIP 4 (৫০০০ টাকা)', price: 5000, daily: 850, duration: 30, badge: '১০০% বোনাস যুক্ত' },
+    { id: 5, name: 'VIP 5 (১০০০০ টাকা)', price: 10000, daily: 1800, duration: 30, badge: '১০০% বোনাস যুক্ত' }
+];
+
+function saveData() {
+    localStorage.setItem('taskbd_users_db', JSON.stringify(usersList));
+    localStorage.setItem('taskbd_logged_key', loggedInUserKey);
+    localStorage.setItem('taskbd_withdraws', JSON.stringify(withdrawRequests));
+    localStorage.setItem('taskbd_deposits', JSON.stringify(depositRequests));
+    localStorage.setItem('taskbd_chats', JSON.stringify(chatMessages));
+}
+
+function getCurrentUser() {
+    return usersList.find(u => u.identifier === loggedInUserKey) || null;
+}
+
+function switchTab(tab) {
+    if(!loggedInUserKey) {
+        renderAuth();
+        return;
+    }
+    currentTab = tab;
+    renderContent();
+}
+
+function generateMath() {
+    currentMath.a = Math.floor(Math.random() * 20) + 5;
+    currentMath.b = Math.floor(Math.random() * 15) + 2;
+    currentMath.ans = currentMath.a + currentMath.b;
+}
+
+function renderContent() {
+    const main = document.getElementById('main-content');
+    const nav = document.getElementById('bottom-nav');
+    const header = document.getElementById('app-header');
+
+    if(!main) return;
+
+    if(!loggedInUserKey) {
+        if(nav) nav.classList.add('hidden');
+        if(header) header.classList.add('hidden');
+        renderAuth();
+        return;
+    }
+
+    if(nav) nav.classList.remove('hidden');
+    if(header) header.classList.remove('hidden');
+
+    const user = getCurrentUser();
+    if(!user) {
+        logoutUser();
+        return;
+    }
+
+    let totalDepositAmount = depositRequests.filter(d => d.status === 'Success').reduce((sum, d) => sum + d.amount, 1500000);
+    let totalWithdrawAmount = withdrawRequests.filter(w => w.status === 'Success').reduce((sum, w) => sum + w.amount, 850000);
+
+    if(currentTab === 'home') {
+        main.innerHTML = `
+            <!-- Statistics Counter -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gradient-to-br from-blue-950 to-slate-900 border border-blue-800/40 p-3 rounded-2xl text-center shadow-lg">
+                    <div class="text-[11px] text-blue-300 font-medium">মোট প্ল্যাটফর্ম ডিপোজিট</div>
+                    <div class="text-base font-black text-emerald-400 mt-1">${totalDepositAmount.toLocaleString()} BDT</div>
+                </div>
+                <div class="grid-cols-1 bg-gradient-to-br from-indigo-950 to-slate-900 border border-indigo-800/40 p-3 rounded-2xl text-center shadow-lg">
+                    <div class="text-[11px] text-indigo-300 font-medium">মোট প্ল্যাটফর্ম উইথড্র</div>
+                    <div class="text-base font-black text-amber-400 mt-1">${totalWithdrawAmount.toLocaleString()} BDT</div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-5 rounded-2xl shadow-xl text-white space-y-3 relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-white/10 rounded-full blur-xl"></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-medium text-blue-100 flex items-center"><i class="fa-solid fa-shield-check text-emerald-400 mr-1.5"></i> Task Bd Official</span>
+                    <span class="bg-white/20 backdrop-blur-md text-[11px] px-3 py-1 rounded-full border border-white/20 font-bold">${user.activePlan}</span>
+                </div>
+                <div class="font-extrabold text-sm tracking-wide truncate">${user.identifier}</div>
+                <div class="flex justify-between pt-3 border-t border-white/20">
+                    <div>
+                        <div class="text-xs text-blue-100">মূল ব্যালেন্স (BDT)</div>
+                        <div class="text-2xl font-black">${user.balance.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-blue-100">বোনাস ব্যালেন্স</div>
+                        <div class="text-2xl font-black text-amber-300">${user.bonusBalance.toFixed(2)}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrolling Notice Board (স্ক্রলিং নোটিশ বোর্ড) -->
+            <div class="bg-gradient-to-r from-slate-900 to-blue-950/80 border border-blue-500/40 p-3.5 rounded-2xl shadow-xl flex items-center space-x-3 overflow-hidden">
+                <div class="bg-blue-600 text-white p-2 rounded-xl text-xs font-bold shrink-0 flex items-center shadow">
+                    <i class="fa-solid fa-bullhorn mr-1.5 animate-bounce"></i> নোটিশ:
+                </div>
+                <div class="overflow-hidden whitespace-nowrap w-full">
+                    <div class="inline-block text-xs text-amber-300 font-semibold animate-marquee">
+                        🎉 বিশেষ অফার: যেকোনো প্যাকেজে প্রথম ডিপোজিটে ১০০% ইনস্ট্যান্ট ক্যাশ বোনাস! নিয়মিত টাস্ক করুন এবং প্রতিদিন পেমেন্ট নিন। 🚀
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-center text-xs pt-1">
+                <button onclick="switchTab('plans')" class="bg-slate-900 p-3 rounded-2xl border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center transition shadow-lg">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-1 text-base"><i class="fa-solid fa-wallet"></i></div>
+                    <span class="font-semibold text-slate-300">ডিপোজিট</span>
+                </button>
+                <button onclick="openWithdrawModal()" class="bg-slate-900 p-3 rounded-2xl border border-slate-800 hover:border-amber-500/50 flex flex-col items-center transition shadow-lg">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-1 text-base"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                    <span class="font-semibold text-slate-300">উইথড্র</span>
+                </button>
+                <button onclick="switchTab('spin')" class="bg-slate-900 p-3 rounded-2xl border border-slate-800 hover:border-purple-500/50 flex flex-col items-center transition shadow-lg">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-1 text-base"><i class="fa-solid fa-dharmachakra"></i></div>
+                    <span class="font-semibold text-slate-300">স্পিন</span>
+                </button>
+                <button onclick="switchTab('refer')" class="bg-slate-900 p-3 rounded-2xl border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center transition shadow-lg">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-1 text-base"><i class="fa-solid fa-users"></i></div>
+                    <span class="font-semibold text-slate-300">রেফার</span>
+                </button>
+            </div>
+        `;
+    } else if(currentTab === 'tasks') {
+        const rewardPerTask = (user.dailyEarnings / 3).toFixed(2);
+        generateMath();
+        currentQuizIndex = Math.floor(Math.random() * quizQuestions.length);
+        const qData = quizQuestions[currentQuizIndex];
+
+        main.innerHTML = `
+            <div class="space-y-4 pb-6">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2">
+                    <button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <h3 class="font-bold text-base text-blue-400">ডেইলি আর্নিং টাস্ক</h3>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-900 p-3.5 rounded-xl border border-slate-800 shadow-md">
+                    <span class="text-xs text-slate-400">প্ল্যান: <strong class="text-white">${user.activePlan}</strong></span>
+                    <span class="text-[11px] bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold">প্রতি টাস্ক: ${rewardPerTask} BDT</span>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-white flex items-center"><i class="fa-solid fa-video text-blue-400 mr-2"></i> ১. ভিডিও দেখে ইনকাম</h4>
+                        <span class="text-xs font-bold text-emerald-400">+${rewardPerTask} BDT</span>
+                    </div>
+                    <div class="h-32 bg-slate-950 rounded-xl flex flex-col items-center justify-center relative overflow-hidden border border-slate-800">
+                        <div id="task-screen-msg" class="text-center p-2">
+                            <i class="fa-solid fa-circle-play text-4xl text-blue-500 mb-2"></i>
+                            <p class="text-xs text-slate-300 font-medium">${user.videoDone ? 'আজকের ভিডিও টাস্ক সম্পন্ন হয়েছে' : 'ভিডিও দেখতে নিচের বাটনে ক্লিক করুন'}</p>
+                        </div>
+                        <div id="task-timer-box" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center space-y-2">
+                            <div class="text-3xl font-black text-emerald-400 font-mono" id="countdown-val">10</div>
+                            <div class="text-xs text-slate-400 font-medium">ভিডিও প্লে হচ্ছে... অপেক্ষা করুন</div>
+                        </div>
+                    </div>
+                    <button id="start-task-btn" onclick="startVideoTask(${rewardPerTask})" ${user.videoDone ? 'disabled' : ''} class="w-full ${user.videoDone ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30'} py-2.5 rounded-xl text-xs font-semibold transition">
+                        ${user.videoDone ? 'আজকের টাস্ক সম্পন্ন' : 'ভিডিও টাস্ক শুরু করুন'}
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-white flex items-center"><i class="fa-solid fa-calculator text-emerald-400 mr-2"></i> ২. অংক করে ইনকাম</h4>
+                        <span class="text-xs font-bold text-emerald-400">+${rewardPerTask} BDT</span>
+                    </div>
+                    ${user.mathDone ? `
+                        <p class="text-xs text-slate-400 bg-slate-950 p-4 rounded-xl text-center border border-slate-800 font-medium">আজকের অংক টাস্ক সম্পন্ন হয়েছে!</p>
+                    ` : `
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-2.5">
+                            <p class="text-xs text-slate-400">নিচের যোগফলটি কত হবে?</p>
+                            <div class="text-2xl font-black text-white font-mono tracking-wider">${currentMath.a} + ${currentMath.b} = ?</div>
+                            <div class="flex space-x-2 pt-1">
+                                <input type="number" id="math-answer-input" placeholder="উত্তর লিখুন" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white text-center focus:outline-none focus:border-emerald-500">
+                                <button onclick="submitMathTask(${rewardPerTask})" class="bg-emerald-600 hover:bg-emerald-700 px-5 py-2.5 rounded-xl text-xs font-semibold text-white shadow-lg shadow-emerald-600/30">জমা দিন</button>
+                            </div>
+                        </div>
+                    `}
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-white flex items-center"><i class="fa-solid fa-circle-question text-purple-400 mr-2"></i> ৩. কুইজের উত্তর দিয়ে ইনকাম</h4>
+                        <span class="text-xs font-bold text-emerald-400">+${rewardPerTask} BDT</span>
+                    </div>
+                    ${user.quizDone ? `
+                        <p class="text-xs text-slate-400 bg-slate-950 p-4 rounded-xl text-center border border-slate-800 font-medium">আজকের কুইজ টাস্ক সম্পন্ন হয়েছে!</p>
+                    ` : `
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                            <p class="text-xs font-bold text-slate-200">প্রশ্ন: ${qData.q}</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${qData.options.map(opt => `
+                                    <button onclick="submitQuizTask('${opt}', '${qData.ans}', ${rewardPerTask})" class="bg-slate-900 hover:bg-purple-600 border border-slate-700 hover:border-purple-500 py-2.5 rounded-xl text-xs text-white transition font-medium shadow">
+                                        ${opt}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+    } else if(currentTab === 'plans') {
+        let html = `<div class="space-y-4 pb-6"><div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2"><button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button><h3 class="font-bold text-base text-blue-400">ভিআইপি ইনভেস্টমেন্ট প্ল্যান (১০০% বোনাস)</h3></div><div class="space-y-3.5">`;
+        plansData.forEach(p => {
+            html += `
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-emerald-600 text-[10px] font-bold px-3 py-0.5 rounded-bl-xl text-white uppercase">${p.badge}</div>
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                        <p class="text-xs text-slate-400">মূল্য: <span class="text-emerald-400 font-bold">${p.price} BDT</span></p>
+                        <p class="text-xs text-slate-400">দৈনিক আয়: <span class="text-blue-400 font-bold">${p.daily} BDT</span> (${p.duration} দিন)</p>
+                    </div>
+                    <button onclick="openPaymentPage(${p.id})" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-xs px-4 py-2.5 rounded-xl font-bold text-white shadow-lg shadow-blue-600/30 transition">অ্যাক্টিভ করুন</button>
+                </div>
+            `;
+        });
+        
+        let userDeposits = depositRequests.filter(d => d.identifier === user.identifier);
+        if(userDeposits.length > 0) {
+            html += `<div class="pt-4 border-t border-slate-800"><h4 class="text-xs font-bold text-slate-400 mb-2.5">আপনার ডিপোজিট হিস্ট্রি</h4><div class="space-y-2.5">`;
+            userDeposits.slice().reverse().forEach(req => {
+                html += `
+                    <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-xs flex justify-between items-center shadow">
+                        <div>
+                            <div class="font-bold text-white">${req.planName} (${req.amount} BDT)</div>
+                            <div class="text-[11px] text-slate-400">TrxID: <span class="font-mono text-slate-300">${req.trxId}</span></div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${req.status === 'Pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : req.status === 'Success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">${req.status}</span>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+        }
+        
+        html += `</div></div>`;
+        main.innerHTML = html;
+
+    } else if(currentTab === 'spin') {
+        main.innerHTML = `
+            <div class="space-y-4 pb-6 text-center">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2 text-left">
+                    <button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <h3 class="font-bold text-base text-blue-400">লাকি স্পিন হুইল</h3>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
+                    <p class="text-xs text-slate-300">চাকা ঘুরিয়ে প্রতিদিন জিতে নিন আকর্ষণীয় ক্যাশ বোনাস!</p>
+                    
+                    <div class="w-48 h-48 bg-gradient-to-tr from-blue-900 to-indigo-900 rounded-full mx-auto flex items-center justify-center border-4 border-amber-400/80 shadow-2xl relative">
+                        <div id="spin-result-text" class="text-lg font-black text-amber-300 font-mono px-2">TASK BD SPIN</div>
+                    </div>
+
+                    <button onclick="startLuckySpin()" id="spin-btn" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 py-3 rounded-xl text-sm font-extrabold text-white shadow-lg shadow-amber-500/30 transition">স্পিন করুন</button>
+                </div>
+            </div>
+        `;
+    } else if(currentTab === 'refer') {
+        const referralLink = window.location.origin + window.location.pathname.replace('index.html', '') + "index.html?ref=" + encodeURIComponent(user.identifier);
+        main.innerHTML = `
+            <div class="space-y-4 pb-6">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2">
+                    <button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <h3 class="font-bold text-base text-blue-400">রেফারেল প্রোগ্রাম</h3>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 text-center shadow-xl">
+                    <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full mx-auto flex items-center justify-center text-xl mb-1"><i class="fa-solid fa-users"></i></div>
+                    <h4 class="font-bold text-sm text-white">বন্ধুদের ইনভাইট করুন এবং ক্যাশ আয় করুন!</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">প্রতিটি সফল রেফারে আপনি ইনস্ট্যান্ট <strong class="text-emerald-400">২০ টাকা</strong> বোনাস পাবেন যখন আপনার বন্ধু ডিপোজিট করবে।</p>
+                    
+                    <div class="pt-2 space-y-2">
+                        <label class="block text-xs text-slate-300 font-semibold text-left">আপনার রেফারেল লিংক:</label>
+                        <div class="flex items-center space-x-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <input type="text" id="ref-link-input" readonly value="${referralLink}" class="w-full bg-transparent text-xs text-emerald-400 font-mono focus:outline-none">
+                            <button onclick="copyReferralLink()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap"><i class="fa-regular fa-copy mr-1"></i> কপি</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else if(currentTab === 'payment') {
+        const p = selectedPlanForPurchase;
+        main.innerHTML = `
+            <div class="space-y-4 pb-6">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2">
+                    <button onclick="switchTab('plans')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <h3 class="font-bold text-base text-blue-400">পেমেন্ট ও ১০০% বোনাস</h3>
+                </div>
+
+                <div class="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/30 p-4 rounded-2xl flex justify-between items-center shadow-xl">
+                    <div>
+                        <div class="text-xs text-blue-300 font-medium">প্যাকেজ</div>
+                        <div class="text-base font-bold text-white">${p.name}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-amber-300 font-medium">১ম ডিপোজিটে ১০০% বোনাস!</div>
+                        <div class="text-lg font-black text-emerald-400">${p.price} BDT</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-700 p-4 rounded-2xl space-y-3 text-center shadow-xl">
+                    <p class="text-xs text-slate-300">নিচের নাম্বারে <span class="text-emerald-400 font-bold">${p.price} টাকা</span> Send Money করুন (বিকাশ / নগদ):</p>
+                    <div class="flex items-center justify-center space-x-2 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <span class="text-lg font-mono font-bold text-emerald-400 tracking-wider">${officialDepositNumber}</span>
+                        <button onclick="copyOfficialNumber()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3.5 py-2 rounded-lg font-semibold shadow"><i class="fa-regular fa-copy mr-1"></i> কপি</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+                    <div>
+                        <label class="block text-slate-300 mb-1.5 font-semibold">পেমেন্ট মেথড</label>
+                        <select id="pay-method" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                            <option value="bKash">bKash</option>
+                            <option value="Nagad">Nagad</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1.5 font-semibold">আপনার সেন্ডার নাম্বার</label>
+                        <input type="text" id="pay-sender-num" placeholder="017XXXXXXXX" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1.5 font-semibold">ট্রানজ্যাকশন আইডি (TrxID)</label>
+                        <input type="text" id="pay-trx-id" placeholder="যেমন: 9H7A6B5C4D" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono uppercase focus:outline-none focus:border-blue-500">
+                    </div>
+                    <button onclick="submitPaymentTrx()" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition mt-2"><i class="fa-solid fa-check-circle mr-1"></i> TrxID জমা দিন</button>
+                </div>
+            </div>
+        `;
+    } else if(currentTab === 'chat') {
+        let chatHtml = `<div class="space-y-3 flex flex-col h-[76vh]">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <div>
+                        <h3 class="font-bold text-sm text-blue-400">লাইভ কাস্টমার সাপোর্ট</h3>
+                        <span class="text-[10px] text-emerald-400 flex items-center"><span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> এডমিন অনলাইন</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-messages-box" class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-3 text-xs shadow-inner">`;
+        
+        chatMessages.forEach(m => {
+            if(m.sender === 'user') {
+                chatHtml += `<div class="flex justify-end chat-msg-anim"><div class="bg-blue-600 text-white p-3 rounded-l-2xl rounded-tr-2xl max-w-[80%] shadow-lg"><div>${m.text}</div><div class="text-[9px] text-blue-200 text-right mt-1">${m.time || ''}</div></div></div>`;
+            } else {
+                chatHtml += `<div class="flex justify-start chat-msg-anim"><div class="bg-slate-800 text-slate-200 p-3 rounded-r-2xl rounded-tl-2xl max-w-[80%] border border-slate-700 shadow-lg"><span class="block text-[10px] text-emerald-400 font-bold mb-1"><i class="fa-solid fa-headset mr-1"></i>সাপোর্ট টিম</span><div>${m.text}</div><div class="text-[9px] text-slate-400 text-right mt-1">${m.time || ''}</div></div></div>`;
+            }
+        });
+
+        chatHtml += `</div>
+            <div class="flex space-x-2 pt-1">
+                <input type="text" id="chat-input" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="আপনার সমস্যা এখানে লিখুন..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-blue-500">
+                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-xl text-xs font-semibold text-white shadow-lg shadow-blue-600/30"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        `;
+        main.innerHTML = chatHtml;
+        scrollChatToBottom();
+    } else if(currentTab === 'account') {
+        main.innerHTML = `
+            <div class="space-y-4 pb-6">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3 mb-2">
+                    <button onclick="switchTab('home')" class="bg-slate-900 hover:bg-blue-600 text-slate-200 hover:text-white w-9 h-9 rounded-full flex items-center justify-center border border-slate-700 transition shadow"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <h3 class="font-bold text-base text-blue-400">আমার একাউন্ট</h3>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center space-x-3.5 shadow-xl">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-xl font-bold text-white shadow-lg"><i class="fa-solid fa-user"></i></div>
+                    <div class="overflow-hidden">
+                        <h4 class="font-bold text-sm text-white truncate">${user.identifier}</h4>
+                        <p class="text-xs text-slate-400 mt-0.5">অ্যাক্টিভ প্ল্যান: <span class="text-blue-400 font-semibold">${user.activePlan}</span></p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl divide-y divide-slate-800 text-xs shadow-xl">
+                    <div onclick="switchTab('plans')" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition"><span class="flex items-center font-medium"><i class="fa-solid fa-gem text-emerald-400 mr-2.5 text-base"></i> ভিআইপি প্যাকেজ কিনুন</span><i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i></div>
+                    <div onclick="openWithdrawModal()" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition"><span class="flex items-center font-medium"><i class="fa-solid fa-money-bill-transfer text-amber-400 mr-2.5 text-base"></i> ব্যালেন্স উইথড্র করুন</span><i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i></div>
+                    <div onclick="switchTab('refer')" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition"><span class="flex items-center font-medium"><i class="fa-solid fa-users text-emerald-400 mr-2.5 text-base"></i> রেফার করুন</span><i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i></div>
+                    <div onclick="switchTab('spin')" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition"><span class="flex items-center font-medium"><i class="fa-solid fa-dharmachakra text-purple-400 mr-2.5 text-base"></i> লাকি স্পিন খেলুন</span><i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i></div>
+                    <div onclick="logoutUser()" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition text-red-400"><span class="flex items-center font-medium"><i class="fa-solid fa-right-from-bracket mr-2.5 text-base"></i> সাইন আউট</span><i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i></div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function renderAuth() {
+    const main = document.getElementById('main-content');
+    const nav = document.getElementById('bottom-nav');
+    const header = document.getElementById('app-header');
+    if(!main) return;
+    if(nav) nav.classList.add('hidden');
+    if(header) header.classList.add('hidden');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref') || '';
+
+    if (authMode === 'login') {
+        main.innerHTML = `
+            <div class="space-y-6 pt-10 pb-6">
+                <div class="text-center space-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-3xl font-black text-white shadow-xl shadow-blue-600/30 mb-2">T</div>
+                    <h2 class="text-2xl font-black text-white">Task Bd Official</h2>
+                    <p class="text-xs text-slate-400">আপনার ফোন নাম্বার বা ইমেল দিয়ে সাইন ইন করুন</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 text-xs shadow-2xl">
+                    <div><label class="block text-slate-300 mb-1.5 font-semibold">ফোন নাম্বার বা ইমেল</label><input type="text" id="login-id" placeholder="017XXXXXXXX বা email@gmail.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="block text-slate-300 mb-1.5 font-semibold">পাসওয়ার্ড</label><input type="password" id="login-pass" placeholder="******" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 py-3.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-blue-600/30 transition">সাইন ইন করুন</button>
+                </div>
+                <div class="text-center text-xs text-slate-400">অ্যাকাউন্ট নেই? <span onclick="authMode='signup'; renderAuth();" class="text-blue-400 font-bold hover:underline cursor-pointer">রেজিস্ট্রার করুন</span></div>
+            </div>
+        `;
+    } else if (authMode === 'signup') {
+        main.innerHTML = `
+            <div class="space-y-6 pt-8 pb-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-black text-white">নতুন অ্যাকাউন্ট তৈরি</h2>
+                    <p class="text-xs text-slate-400">টাকা ইনকাম শুরু করতে তথ্য দিন</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 text-xs shadow-2xl">
+                    <div><label class="block text-slate-300 mb-1.5 font-semibold">ফোন নাম্বার বা ইমেল</label><input type="text" id="signup-id" placeholder="017XXXXXXXX বা email@gmail.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="block text-slate-300 mb-1.5 font-semibold">পাসওয়ার্ড</label><input type="password" id="signup-pass" placeholder="******" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="block text-slate-300 mb-1.5 font-semibold">রেফার কোড (ঐচ্ছিক)</label><input type="text" id="signup-ref" value="${refParam}" placeholder="রেফারকারীর নাম্বার/ইমেল" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <button onclick="handleSignup()" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition">সাইন আপ করুন</button>
+                </div>
+                <div class="text-center text-xs text-slate-400">ইতিমধ্যে অ্যাকাউন্ট আছে? <span onclick="authMode='login'; renderAuth();" class="text-blue-400 font-bold hover:underline cursor-pointer">সাইন ইন করুন</span></div>
+            </div>
+        `;
+    }
+}
+
+function handleLogin() {
+    const identifier = document.getElementById('login-id').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    let u = usersList.find(item => item.identifier === identifier && item.password === pass);
+    if(u) {
+        loggedInUserKey = u.identifier;
+        saveData();
+        switchTab('home');
+    } else {
+        alert("ভুল ফোন নাম্বার/ইমেল অথবা পাসওয়ার্ড!");
+    }
+}
+
+function handleSignup() {
+    const identifier = document.getElementById('signup-id').value.trim();
+    const pass = document.getElementById('signup-pass').value.trim();
+    const refCode = document.getElementById('signup-ref').value.trim();
+
+    if(!identifier || !pass) {
+        alert("ফোন নাম্বার/ইমেল এবং পাসওয়ার্ড দিন!");
+        return;
+    }
+    if(usersList.some(item => item.identifier === identifier)) {
+        alert("এই নাম্বার বা ইমেল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে!");
+        return;
+    }
+
+    if(refCode) {
+        let referrer = usersList.find(u => u.identifier === refCode);
+        if(referrer) {
+            referrer.balance += 20;
+        }
+    }
+
+    usersList.push({
+        identifier: identifier,
+        password: pass,
+        balance: 50.00,
+        bonusBalance: 0.00,
+        recharge: 0.00,
+        activePlan: 'Free Tier',
+        dailyEarnings: 30.00,
+        referredBy: refCode || null,
+        videoDone: false,
+        mathDone: false,
+        quizDone: false
+    });
+    loggedInUserKey = identifier;
+    saveData();
+    alert("অভিনন্দন! সফলভাবে অ্যাকাউন্ট তৈরি হয়েছে এবং ৫০ টাকা ওয়েলকাম বোনাস যোগ হয়েছে!");
+    switchTab('home');
+}
+
+function logoutUser() {
+    loggedInUserKey = null;
+    saveData();
+    renderAuth();
+}
+
+function copyReferralLink() {
+    const copyText = document.getElementById("ref-link-input");
+    copyText.select();
+    navigator.clipboard.writeText(copyText.value);
+    alert("রেফারেল লিংক কপি হয়েছে: " + copyText.value);
+}
+
+function startLuckySpin() {
+    const user = getCurrentUser();
+    let prizes = [5, 10, 20, 50, 100, 0, 15, 0];
+    let win = prizes[Math.floor(Math.random() * prizes.length)];
+    user.balance += win;
+    saveData();
+    document.getElementById('spin-result-text').innerText = win > 0 ? `+${win} BDT জিতেছেন!` : `পরের বার চেষ্টা করুন`;
+    alert(win > 0 ? `অভিনন্দন! স্পিন করে আপনি ${win} BDT জিতেছেন!` : `দুঃখিত, এইবার কোনো বোনাস আসেনি!`);
+    renderContent();
+}
+
+function openProfileModal() {
+    if(!loggedInUserKey) return;
+    const user = getCurrentUser();
+    document.getElementById('profile-modal-user').innerText = user.identifier;
+    document.getElementById('profile-modal-plan').innerText = user.activePlan;
+    document.getElementById('profile-modal-bal').innerText = user.balance.toFixed(2) + ' BDT';
+    document.getElementById('profile-modal-bonus').innerText = (user.bonusBalance || 0).toFixed(2) + ' BDT';
+    document.getElementById('profile-modal-dep').innerText = user.recharge.toFixed(2) + ' BDT';
+    document.getElementById('profile-modal').classList.remove('hidden');
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.add('hidden');
+}
+
+function startVideoTask(reward) {
+    const user = getCurrentUser();
+    if(user.videoDone) return;
+    document.getElementById('start-task-btn').disabled = true;
+    document.getElementById('task-screen-msg').classList.add('hidden');
+    document.getElementById('task-timer-box').classList.remove('hidden');
+
+    let timeLeft = 10;
+    let timerInterval = setInterval(() => {
+        timeLeft--;
+        let countdownEl = document.getElementById('countdown-val');
+        if(countdownEl) countdownEl.innerText = timeLeft;
+        if(timeLeft <= 0) {
+            clearInterval(timerInterval);
+            user.balance += parseFloat(reward);
+            user.videoDone = true;
+            saveData();
+            alert(`অভিনন্দন! ভিডিও দেখে আপনি ${reward} BDT আয় করেছেন।`);
+            renderContent();
+        }
+    }, 1000);
+}
+
+function submitMathTask(reward) {
+    const user = getCurrentUser();
+    if(user.mathDone) return;
+    const userAns = parseInt(document.getElementById('math-answer-input').value);
+    if(isNaN(userAns)) {
+        alert("দয়া করে সঠিক সংখ্যা লিখুন!");
+        return;
+    }
+    if(userAns === currentMath.ans) {
+        user.balance += parseFloat(reward);
+        user.mathDone = true;
+        saveData();
+        alert(`সঠিক উত্তর! আপনি ${reward} BDT আয় করেছেন।`);
+        renderContent();
+    } else {
+        alert("ভুল উত্তর!");
+        renderContent();
+    }
+}
+
+function submitQuizTask(selected, correct, reward) {
+    const user = getCurrentUser();
+    if(user.quizDone) return;
+    if(selected === correct) {
+        user.balance += parseFloat(reward);
+        user.quizDone = true;
+        saveData();
+        alert(`সঠিক উত্তর! আপনি ${reward} BDT আয় করেছেন।`);
+        renderContent();
+    } else {
+        alert("ভুল উত্তর!");
+        renderContent();
+    }
+}
+
+function openPaymentPage(planId) {
+    selectedPlanForPurchase = plansData.find(p => p.id === planId);
+    if(selectedPlanForPurchase) {
+        switchTab('payment');
+    }
+}
+
+function copyOfficialNumber() {
+    navigator.clipboard.writeText(officialDepositNumber);
+    alert("অফিশিয়াল নাম্বার কপি হয়েছে: " + officialDepositNumber);
+}
+
+function submitPaymentTrx() {
+    const user = getCurrentUser();
+    const method = document.getElementById('pay-method').value;
+    const senderNum = document.getElementById('pay-sender-num').value.trim();
+    const trxId = document.getElementById('pay-trx-id').value.trim();
+
+    if(!senderNum || !trxId) {
+        alert("আপনার সেন্ডার নাম্বার ও TrxID দিন!");
+        return;
+    }
+
+    depositRequests.push({
+        id: Date.now(),
+        identifier: user.identifier,
+        planId: selectedPlanForPurchase.id,
+        planName: selectedPlanForPurchase.name,
+        amount: selectedPlanForPurchase.price,
+        daily: selectedPlanForPurchase.daily,
+        method: method,
+        senderNumber: senderNum,
+        trxId: trxId,
+        status: 'Pending'
+    });
+
+    saveData();
+    alert("পেমেন্ট রিকোয়েস্ট সফলভাবে জমা হয়েছে! এডমিন যাচাই করে প্যাকেজ এবং ১০০% বোনাস যোগ করে দেবেন।");
+    switchTab('plans');
+}
+
+function openWithdrawModal() {
+    const user = getCurrentUser();
+    let amount = prompt("উইথড্র করার পরিমাণ লিখুন (BDT):", "200");
+    if(amount && !isNaN(amount)) {
+        if(parseFloat(amount) > user.balance) {
+            alert("পর্যাপ্ত মূল ব্যালেন্স নেই!");
+            return;
+        }
+        let method = prompt("মেথড লিখুন (bKash / Nagad):", "bKash");
+        let number = prompt("আপনার ওয়ালেট নাম্বার লিখুন:", "017xxxxxxxx");
+        if(method && number) {
+            user.balance -= parseFloat(amount);
+            withdrawRequests.push({
+                id: Date.now(),
+                identifier: user.identifier,
+                method: method,
+                amount: parseFloat(amount),
+                number: number,
+                status: 'Pending'
+            });
+            saveData();
+            alert("উইথড্র রিকোয়েস্ট সফলভাবে জমা হয়েছে!");
+            renderContent();
+        }
+    }
+}
+
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function sendChatMessage() {
+    let input = document.getElementById('chat-input');
+    let text = input.value.trim();
+    if(text) {
+        chatMessages.push({ sender: 'user', text: text, time: getCurrentTime() });
+        saveData();
+        input.value = '';
+        renderContent();
+    }
+}
+
+function scrollChatToBottom() {
+    let box = document.getElementById('chat-messages-box');
+    if(box) box.scrollTop = box.scrollHeight;
+}
+
+// Admin Panel Render Functions
+function renderAdminDashboard() {
+    let dList = document.getElementById('admin-deposit-list');
+    if(dList) {
+        if(depositRequests.length === 0) {
+            dList.innerHTML = `<p class="text-xs text-slate-500">কোনো রিকোয়েস্ট নেই।</p>`;
+        } else {
+            let dHtml = '';
+            depositRequests.slice().reverse().forEach(req => {
+                dHtml += `
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1 shadow">
+                        <div class="flex justify-between font-semibold"><span class="text-white">${req.identifier}</span><span class="text-emerald-400 font-bold">${req.amount} BDT</span></div>
+                        <div class="text-slate-400 text-[11px]">Plan: ${req.planName} | TrxID: ${req.trxId}</div>
+                        <div class="flex justify-between items-center pt-1">
+                            <span class="text-[10px] uppercase font-bold ${req.status === 'Pending' ? 'text-amber-500' : req.status === 'Success' ? 'text-emerald-500' : 'text-red-500'}">${req.status}</span>
+                            ${req.status === 'Pending' ? `<div class="space-x-1.5"><button onclick="updateDeposit(${req.id}, 'Success')" class="bg-emerald-600 px-2.5 py-1 rounded-lg text-white font-semibold">এপ্রুভ (+100% Bonus)</button><button onclick="updateDeposit(${req.id}, 'Reject')" class="bg-red-600 px-2.5 py-1 rounded-lg text-white font-semibold">বাতিল</button></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            dList.innerHTML = dHtml;
+        }
+    }
+
+    let wList = document.getElementById('admin-withdraw-list');
+    if(wList) {
+        if(withdrawRequests.length === 0) {
+            wList.innerHTML = `<p class="text-xs text-slate-500">কোনো রিকোয়েস্ট নেই।</p>`;
+        } else {
+            let wHtml = '';
+            withdrawRequests.slice().reverse().forEach(req => {
+                wHtml += `
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1 shadow">
+                        <div class="flex justify-between font-semibold"><span class="text-white">${req.identifier}</span><span class="text-amber-400 font-bold">${req.amount} BDT</span></div>
+                        <div class="text-slate-400 text-[11px]">Acc: ${req.number} (${req.method})</div>
+                        <div class="flex justify-between items-center pt-1">
+                            <span class="text-[10px] uppercase font-bold ${req.status === 'Pending' ? 'text-amber-500' : req.status === 'Success' ? 'text-emerald-500' : 'text-red-500'}">${req.status}</span>
+                            ${req.status === 'Pending' ? `<div class="space-x-1.5"><button onclick="updateWithdraw(${req.id}, 'Success')" class="bg-emerald-600 px-2.5 py-1 rounded-lg text-white font-semibold">পরিশোধ</button><button onclick="updateWithdraw(${req.id}, 'Reject')" class="bg-red-600 px-2.5 py-1 rounded-lg text-white font-semibold">বাতিল</button></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            wList.innerHTML = wHtml;
+        }
+    }
+
+    let cList = document.getElementById('admin-chat-list');
+    if(cList) {
+        let cHtml = '';
+        chatMessages.forEach((m) => {
+            cHtml += `<div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px]"><span class="font-bold ${m.sender === 'admin' ? 'text-emerald-400' : 'text-blue-400'} uppercase">${m.sender}:</span> ${m.text}</div>`;
+        });
+        cList.innerHTML = cHtml;
+        cList.scrollTop = cList.scrollHeight;
+    }
+}
+
+function sendDirectAdminMessage() {
+    let input = document.getElementById('admin-direct-msg');
+    if(input && input.value.trim()) {
+        chatMessages.push({ sender: 'admin', text: input.value.trim(), time: getCurrentTime() });
+        saveData();
+        renderAdminDashboard();
+    }
+}
+
+function updateDeposit(id, status) {
+    let req = depositRequests.find(r => r.id === id);
+    if(req) {
+        req.status = status;
+        if(status === 'Success') {
+            let targetUser = usersList.find(u => u.identifier === req.identifier);
+            if(targetUser) {
+                targetUser.activePlan = req.planName;
+                targetUser.dailyEarnings = req.daily;
+                targetUser.recharge += req.amount;
+                targetUser.balance += req.amount;
+                targetUser.bonusBalance = (targetUser.bonusBalance || 0) + req.amount;
+            }
+        }
+        saveData();
+        renderAdminDashboard();
+    }
+}
+
+function updateWithdraw(id, status) {
+    let req = withdrawRequests.find(r => r.id === id);
+    if(req) {
+        req.status = status;
+        if(status === 'Reject') {
+            let targetUser = usersList.find(u => u.identifier === req.identifier);
+            if(targetUser) targetUser.balance += req.amount;
+        }
+        saveData();
+        renderAdminDashboard();
+    }
+}
+
+// Initial Run for User App
+if(loggedInUserKey) {
+    switchTab('home');
+} else {
+    renderAuth();
+}
